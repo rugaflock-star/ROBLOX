@@ -4,7 +4,7 @@ local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local fovAmount = 200
+local fovAmount = 60
 local teamCheck = false
 
 local fovCircle = Drawing.new("Circle")
