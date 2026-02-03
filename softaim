@@ -1,0 +1,78 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local fovAmount = 200
+local teamCheck = false
+
+local fovCircle = Drawing.new("Circle")
+fovCircle.Radius = fovAmount
+fovCircle.Visible = true
+fovCircle.Color = Color3.fromRGB(212, 34, 255)
+fovCircle.Thickness = 1
+fovCircle.NumSides = 11
+fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    fovCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+end)
+
+local function GetClosestPlayer()
+    local closestDistance, closestPlayer = math.huge, nil
+    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local character = player.Character
+            if character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0 then
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(humanoidRootPart.Position)
+                    if onScreen then
+                        local distance = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                        if distance <= fovAmount and (not teamCheck or player.Team ~= LocalPlayer.Team) then
+                            if distance < closestDistance then
+                                closestPlayer = player
+                                closestDistance = distance
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local GunHandler = require(ReplicatedStorage.Modules.GunHandler)
+
+if GunHandler then
+    local originalShoot = GunHandler.Shoot
+    
+    GunHandler.Shoot = function(params)
+        local target = GetClosestPlayer()
+        if target and target.Character then
+            local targetHead = target.Character:FindFirstChild("Head")
+            if targetHead then
+                
+                params.AimPosition = targetHead.Position
+                params.Hit = targetHead
+                params.Normal = Vector3.new(0, 1, 0)
+                
+                if params.BeamTarget then
+                    params.BeamTarget = targetHead
+                end
+            end
+        end
+        
+        return originalShoot(params)
+    end
+    
+    print("GunHandler hooked successfully")
+else
+    warn("GunHandler module not found")
+end
+
